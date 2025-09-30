@@ -6,8 +6,16 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 
+void loadTriangle(unsigned int& VAO, unsigned int& VBO);
+void loadRectangle(unsigned int& EBO, unsigned int& VAO, unsigned int& VBO);
+
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
+const char* shape = "RECT";
+
+unsigned int toggle = 0;
+double lastTime = 0;
+double delay = 2;
 
 const char* vertexShaderSource = "#version 330 core\n"
     "layout (location = 0) in vec3 aPos;\n"
@@ -87,25 +95,9 @@ int main() {
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    float vertices[] = {
-        -0.5f, -0.5f, 0.0f, // left  
-         0.5f, -0.5f, 0.0f, // right 
-         0.0f,  0.5f, 0.0f  // top   
-    };
-
-    unsigned int VBO, VAO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-
-    glBindVertexArray(VAO);                 // bind
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);     // bind
-
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);      // raw data
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);   // interpreted data
-    glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);       // unbind
-    glBindVertexArray(0);                   // unbind
+    unsigned int VAOs[2], VBOs[2], EBO;
+    loadTriangle(VAOs[0], VBOs[0]);
+    loadRectangle(EBO, VAOs[1], VBOs[1]);
 
     int viewport_x = 0; // -1 ... 0 ... 1
     int viewport_y = 0; // -1 ... 0 ... 1
@@ -114,6 +106,7 @@ int main() {
     // render loop
     while (!glfwWindowShouldClose(window))
     {
+        // input
         processInput(window);
 
         // change color buffer
@@ -122,19 +115,33 @@ int main() {
 
         // use shader
         glUseProgram(shaderProgram);
-        // bind again if unbind earlier
-        // apply config
-        glBindVertexArray(VAO);
-        // draw
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        if (glfwGetTime()-lastTime >= delay) {
+            toggle++;
+            if (toggle % 2 == 1) {
+                shape = "RECT";
+            }
+            if (toggle % 2 == 0) {
+                shape = "TRI";
+            }
+            lastTime = glfwGetTime();
+        }
+        if (strcmp(shape,"RECT")){
+            glBindVertexArray(VAOs[1]);
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        }
+        if (strcmp(shape, "TRI")) {
+            glBindVertexArray(VAOs[0]);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
     // de-allocate
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(2, VAOs);
+    glDeleteBuffers(2, VBOs);
+    glDeleteBuffers(1, &EBO);
     glDeleteProgram(shaderProgram);
 
     glfwTerminate();
@@ -152,4 +159,52 @@ void processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+    if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+}
+
+void loadTriangle(unsigned int &VAO, unsigned int &VBO) {
+    float vertices[] = {
+        -0.5f, -0.5f, 0.0f, // left  
+         0.5f, -0.5f, 0.0f, // right 
+         0.0f,  0.5f, 0.0f  // top   
+    };
+
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+
+    glBindVertexArray(VAO);                 // bind
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);     // bind
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);      // raw data
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);   // interpreted data
+    glEnableVertexAttribArray(0);
+}
+
+void loadRectangle(unsigned int &EBO, unsigned int& VAO, unsigned int& VBO) {
+    float vertices[] = {
+         0.5f,  0.5f, 0.0f,  // top right
+         0.5f, -0.5f, 0.0f,  // bottom right
+        -0.5f, -0.5f, 0.0f,  // bottom left
+        -0.5f,  0.5f, 0.0f   // top left 
+    };
+    unsigned int indices[] = { 
+        0, 1, 3,   // first triangle
+        1, 2, 3    // second triangle
+    };
+
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+    glEnableVertexAttribArray(0);
 }
