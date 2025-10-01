@@ -70,8 +70,14 @@ int main() {
         glClearColor(0.2f, 0.3f, 0.2f, 0);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // render
         ourShader.use();
+        // set uniform offset
+        float timeValue = glfwGetTime();
+        float x = sin(timeValue) * 0.5f;
+        float y = cos(timeValue) * 0.5f;
+        int offset = glGetUniformLocation(ourShader.ID, "offset");
+        glUniform2f(offset, x, y);
+        // render
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
