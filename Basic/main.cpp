@@ -1,6 +1,12 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "stb_image.h"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "../include/stb/stb_image.h"
+
+#include "../include/glm/glm.hpp"
+#include "../include/glm/gtc/matrix_transform.hpp"
+#include "../include/glm/gtc/type_ptr.hpp"
 
 #include <iostream>
 #include "shader.h"
@@ -145,8 +151,19 @@ int main() {
         glClearColor(0.2f, 0.3f, 0.2f, 0);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // render container
+        float time = (float)glfwGetTime();
+        // create transformations
+        glm::mat4 transform = glm::mat4(1.0f);
+        transform = glm::translate(transform, glm::vec3(sin(time)/2, cos(time)/2, 0.0f));
+        transform = glm::rotate(transform, time, glm::vec3(0.0f, 0.0f, 1.0f));
+        transform = glm::scale(transform, glm::vec3(0.5f, 0.5f, 0.0f));
+
         ourShader.use();
+        // unsigned int uTransform = glGetUniformLocation(ourShader.ID, "transform");
+        // glUniformMatrix4fv(uTransform, 1, GL_FALSE, glm::value_ptr(transform));
+        ourShader.setMat4("transform", transform);
+
+        // render container
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
